@@ -12,7 +12,7 @@ const withPWA = _withPWA({
 // Replace 'YOUR_REPOSITORY_NAME' with the actual name of your GitHub repository
 // if you are deploying to username.github.io/YOUR_REPOSITORY_NAME
 // If deploying to username.github.io or a custom domain, these can be empty strings or removed.
-const repoName = 'https://github.com/tasnimxpress/trackIt'; // CHANGE THIS
+const repoName = 'trackIt'; // CHANGE THIS
 const isProd = process.env.NODE_ENV === 'production';
 
 const nextConfig: NextConfig = {
