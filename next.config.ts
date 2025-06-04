@@ -38,8 +38,8 @@ const nextConfig: NextConfig = {
   // e.g., your-username.github.io/your-repository-name
   // If deploying to the root (e.g., your-username.github.io or a custom domain),
   // you can remove basePath and assetPrefix or set them to an empty string.
-  basePath: isProd && repoName !== '' ? `/${repoName}` : '',
-  assetPrefix: isProd && repoName !== '' ? `/${repoName}/` : '',
+  //basePath: isProd && repoName !== '' ? `/${repoName}` : '',
+  //assetPrefix: isProd && repoName !== '' ? `/${repoName}/` : '',
 };
 
 export default withPWA(nextConfig);
