@@ -17,15 +17,13 @@ interface ExpenseFormProps {
   expenses: Expense[];
 }
 
-const ADD_NEW_VALUE = "__add_new__";
-
 const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [manualCategoryInput, setManualCategoryInput] = useState<string>("");
+  const [selectedCategoryValue, setSelectedCategoryValue] = useState<string>("");
+  const [newCategoryInputValue, setNewCategoryInputValue] = useState<string>("");
 
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string>("");
-  const [manualSubCategoryInput, setManualSubCategoryInput] = useState<string>("");
-
+  const [selectedSubCategoryValue, setSelectedSubCategoryValue] = useState<string>("");
+  const [newSubCategoryInputValue, setNewSubCategoryInputValue] = useState<string>("");
+  
   const [cost, setCost] = useState("");
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -34,43 +32,53 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
     return Array.from(new Set(expenses.map(exp => exp.category).filter(cat => cat && cat.trim() !== ""))).sort();
   }, [expenses]);
 
-  const currentCategoryForSuggestions = useMemo(() => {
-    // If 'Add new category' is selected, we don't have a current category for suggestions yet.
-    return selectedCategory === ADD_NEW_VALUE ? "" : selectedCategory;
-  }, [selectedCategory]);
-
   const subCategorySuggestions = useMemo(() => {
-    if (!currentCategoryForSuggestions) return [];
+    // Suggestions are only based on a category selected from the dropdown,
+    // not if a new category is being typed.
+    if (!selectedCategoryValue || newCategoryInputValue.trim() !== "") return [];
     return Array.from(new Set(
       expenses
-        .filter(exp => exp.category === currentCategoryForSuggestions)
+        .filter(exp => exp.category === selectedCategoryValue)
         .map(exp => exp.subCategory)
         .filter(sub => sub && sub.trim() !== "")
     )).sort();
-  }, [expenses, currentCategoryForSuggestions]);
+  }, [expenses, selectedCategoryValue, newCategoryInputValue]);
 
   const handleCategorySelectChange = (value: string) => {
-    setSelectedCategory(value);
-    setManualCategoryInput(""); 
-    // Reset sub-category when category changes, so user makes a conscious choice
-    setSelectedSubCategory("");
-    setManualSubCategoryInput("");
+    setSelectedCategoryValue(value);
+    setNewCategoryInputValue(""); // Clear manual input if dropdown is used
+    // Reset sub-category when category changes
+    setSelectedSubCategoryValue("");
+    setNewSubCategoryInputValue("");
+  };
+
+  const handleNewCategoryInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewCategoryInputValue(e.target.value);
+    setSelectedCategoryValue(""); // Clear dropdown if manual input is used
+    // Reset sub-category when category changes
+    setSelectedSubCategoryValue("");
+    setNewSubCategoryInputValue("");
   };
 
   const handleSubCategorySelectChange = (value: string) => {
-    setSelectedSubCategory(value);
-    setManualSubCategoryInput("");
+    setSelectedSubCategoryValue(value);
+    setNewSubCategoryInputValue(""); // Clear manual input if dropdown is used
+  };
+
+  const handleNewSubCategoryInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewSubCategoryInputValue(e.target.value);
+    setSelectedSubCategoryValue(""); // Clear dropdown if manual input is used
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    const categoryToSubmit = (selectedCategory === ADD_NEW_VALUE ? manualCategoryInput : selectedCategory).trim();
-    const subCategoryToSubmit = (selectedSubCategory === ADD_NEW_VALUE ? manualSubCategoryInput : selectedSubCategory).trim();
+    const categoryToSubmit = newCategoryInputValue.trim() || selectedCategoryValue;
+    const subCategoryToSubmit = newSubCategoryInputValue.trim() || selectedSubCategoryValue;
 
     if (!categoryToSubmit) {
-      setError("Category is required.");
+      setError("Category is required (either select an existing one or enter a new one).");
       return;
     }
     if (!cost.trim()) {
@@ -85,18 +93,21 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
 
     onAddExpense({ category: categoryToSubmit, subCategory: subCategoryToSubmit, cost: costValue });
     
-    // Reset form fields
-    setSelectedCategory("");
-    setManualCategoryInput("");
-    setSelectedSubCategory("");
-    setManualSubCategoryInput("");
+    setSelectedCategoryValue("");
+    setNewCategoryInputValue("");
+    setSelectedSubCategoryValue("");
+    setNewSubCategoryInputValue("");
     setCost("");
 
     toast({
       title: "Expense Added",
-      description: `${categoryToSubmit} - $${costValue.toFixed(2)} has been successfully added.`,
+      description: `${categoryToSubmit}${subCategoryToSubmit ? ` (${subCategoryToSubmit})` : ''} - $${costValue.toFixed(2)} has been successfully added.`,
     });
   };
+  
+  const isNewCategoryTyped = newCategoryInputValue.trim() !== "";
+  const isCategorySelected = selectedCategoryValue !== "";
+  const isCategoryChosen = isNewCategoryTyped || isCategorySelected;
 
   return (
     <Card className="w-full max-w-lg shadow-xl">
@@ -107,58 +118,64 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="category-select" className="text-base">Category</Label>
-            <Select value={selectedCategory} onValueChange={handleCategorySelectChange}>
+            <Select 
+              value={selectedCategoryValue} 
+              onValueChange={handleCategorySelectChange}
+              disabled={isNewCategoryTyped}
+            >
               <SelectTrigger id="category-select" className="text-base">
-                <SelectValue placeholder="Select or add a category" />
+                <SelectValue placeholder="Select an existing category" />
               </SelectTrigger>
               <SelectContent>
                 {uniqueCategories.map(cat => (
                   <SelectItem key={cat} value={cat} className="text-base">{cat}</SelectItem>
                 ))}
-                <SelectItem value={ADD_NEW_VALUE} className="text-base">Add new category...</SelectItem>
               </SelectContent>
             </Select>
-            {selectedCategory === ADD_NEW_VALUE && (
-              <Input
-                id="manual-category"
-                value={manualCategoryInput}
-                onChange={(e) => setManualCategoryInput(e.target.value)}
-                placeholder="Enter new category name"
-                className="mt-2 text-base"
-              />
-            )}
+            <div className="flex items-center space-x-2 my-1">
+              <div className="flex-grow border-t border-muted"></div>
+              <span className="text-xs text-muted-foreground">OR</span>
+              <div className="flex-grow border-t border-muted"></div>
+            </div>
+            <Input
+              id="new-category-input"
+              value={newCategoryInputValue}
+              onChange={handleNewCategoryInputChange}
+              placeholder="Enter new category name"
+              className="text-base"
+              disabled={isCategorySelected && !isNewCategoryTyped}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="subcategory-select" className="text-base">Sub-Category (Optional)</Label>
             <Select
-              value={selectedSubCategory}
+              value={selectedSubCategoryValue}
               onValueChange={handleSubCategorySelectChange}
-              disabled={!selectedCategory} // Only disable if no category at all is selected
+              disabled={!isCategoryChosen || isNewCategoryTyped || newSubCategoryInputValue.trim() !== ""}
             >
               <SelectTrigger id="subcategory-select" className="text-base">
-                <SelectValue placeholder="Select or add a sub-category" />
+                <SelectValue placeholder={isNewCategoryTyped ? "Enter new sub-category below" : "Select existing sub-category"} />
               </SelectTrigger>
               <SelectContent>
                 {subCategorySuggestions.map(sub => (
                   <SelectItem key={sub} value={sub} className="text-base">{sub}</SelectItem>
                 ))}
-                {/* Allow adding new sub-category if any category is selected (new or existing) */}
-                {selectedCategory && (
-                  <SelectItem value={ADD_NEW_VALUE} className="text-base">Add new sub-category...</SelectItem>
-                )}
               </SelectContent>
             </Select>
-            {/* Show manual input if "Add new sub-category" is chosen and a category is selected (new or existing) */}
-            {selectedSubCategory === ADD_NEW_VALUE && selectedCategory && (
-              <Input
-                id="manual-subcategory"
-                value={manualSubCategoryInput}
-                onChange={(e) => setManualSubCategoryInput(e.target.value)}
-                placeholder="Enter new sub-category name"
-                className="mt-2 text-base"
-              />
-            )}
+            <div className="flex items-center space-x-2 my-1">
+              <div className="flex-grow border-t border-muted"></div>
+              <span className="text-xs text-muted-foreground">OR</span>
+              <div className="flex-grow border-t border-muted"></div>
+            </div>
+            <Input
+              id="new-subcategory-input"
+              value={newSubCategoryInputValue}
+              onChange={handleNewSubCategoryInputChange}
+              placeholder="Enter new sub-category name"
+              className="text-base"
+              disabled={!isCategoryChosen || (selectedSubCategoryValue !== "" && newSubCategoryInputValue.trim() === "")}
+            />
           </div>
 
           <div className="space-y-2">
@@ -192,4 +209,3 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
 };
 
 export default ExpenseForm;
-
