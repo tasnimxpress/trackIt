@@ -35,6 +35,7 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
   }, [expenses]);
 
   const currentCategoryForSuggestions = useMemo(() => {
+    // If 'Add new category' is selected, we don't have a current category for suggestions yet.
     return selectedCategory === ADD_NEW_VALUE ? "" : selectedCategory;
   }, [selectedCategory]);
 
@@ -51,7 +52,7 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
   const handleCategorySelectChange = (value: string) => {
     setSelectedCategory(value);
     setManualCategoryInput(""); 
-    // Reset sub-category when category changes
+    // Reset sub-category when category changes, so user makes a conscious choice
     setSelectedSubCategory("");
     setManualSubCategoryInput("");
   };
@@ -133,7 +134,7 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
             <Select
               value={selectedSubCategory}
               onValueChange={handleSubCategorySelectChange}
-              disabled={!selectedCategory || selectedCategory === ADD_NEW_VALUE}
+              disabled={!selectedCategory} // Only disable if no category at all is selected
             >
               <SelectTrigger id="subcategory-select" className="text-base">
                 <SelectValue placeholder="Select or add a sub-category" />
@@ -142,13 +143,14 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
                 {subCategorySuggestions.map(sub => (
                   <SelectItem key={sub} value={sub} className="text-base">{sub}</SelectItem>
                 ))}
-                {/* Allow adding new sub-category if a category is selected and it's not the "add_new" placeholder */}
-                {selectedCategory && selectedCategory !== ADD_NEW_VALUE && (
+                {/* Allow adding new sub-category if any category is selected (new or existing) */}
+                {selectedCategory && (
                   <SelectItem value={ADD_NEW_VALUE} className="text-base">Add new sub-category...</SelectItem>
                 )}
               </SelectContent>
             </Select>
-            {selectedSubCategory === ADD_NEW_VALUE && selectedCategory && selectedCategory !== ADD_NEW_VALUE && (
+            {/* Show manual input if "Add new sub-category" is chosen and a category is selected (new or existing) */}
+            {selectedSubCategory === ADD_NEW_VALUE && selectedCategory && (
               <Input
                 id="manual-subcategory"
                 value={manualSubCategoryInput}
@@ -190,3 +192,4 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
 };
 
 export default ExpenseForm;
+
