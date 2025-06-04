@@ -1,24 +1,24 @@
 {
-  "name": "TrackIt - Expense Tracker",
+  "name": "TrackIt",
   "short_name": "TrackIt",
   "description": "Track your daily expenses easily.",
   "icons": [
     {
-      "src": "https://placehold.co/192x192.png",
+      "src": "https://placehold.co/192x192.png?text=AppIcon&font=sans-serif",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://placehold.co/512x512.png",
+      "src": "https://placehold.co/512x512.png?text=AppIcon&font=sans-serif",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#d8d1f5",
   "theme_color": "#8374df",
-  "orientation": "portrait-primary"
+  "background_color": "#ffffff",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait"
 }

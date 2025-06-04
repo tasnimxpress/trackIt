@@ -31,8 +31,8 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         
-        {/* Optional: Apple touch icon (user should replace with actual icon) */}
-        {/* <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" /> */}
+        {/* Apple touch icon */}
+        <link rel="apple-touch-icon" href="https://placehold.co/180x180.png?text=AppIcon&font=sans-serif" />
 
       </head>
       <body className="font-body antialiased" suppressHydrationWarning={true}>
