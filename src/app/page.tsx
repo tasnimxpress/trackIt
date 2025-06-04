@@ -2,23 +2,27 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { format } from 'date-fns';
+import { format, addMonths, subMonths } from 'date-fns';
 import type { Expense } from '@/types';
 import ExpenseForm from '@/components/trackit/ExpenseForm';
 import ExpenseDisplayCard from '@/components/trackit/ExpenseDisplayCard';
+import MonthlyExpenseReport from '@/components/trackit/MonthlyExpenseReport';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [displayedDate, setDisplayedDate] = useState<Date | null>(null);
   const [todayDateString, setTodayDateString] = useState<string>("");
+  const [reportMonth, setReportMonth] = useState<Date>(new Date());
 
   useEffect(() => {
     const now = new Date();
     setDisplayedDate(now);
     setTodayDateString(format(now, 'yyyy-MM-dd'));
+    setReportMonth(now); // Initialize reportMonth to current month
     
-    // Load expenses from localStorage if available
     const storedExpenses = localStorage.getItem('trackit-expenses');
     if (storedExpenses) {
       try {
@@ -58,6 +62,23 @@ export default function Home() {
     return todaysExpenses.reduce((sum, expense) => sum + expense.cost, 0);
   }, [todaysExpenses]);
 
+  const handlePreviousMonth = () => {
+    setReportMonth(prev => subMonths(prev, 1));
+  };
+
+  const handleNextMonth = () => {
+    setReportMonth(prev => addMonths(prev, 1));
+  };
+
+  const monthlyExpenses = useMemo(() => {
+    return expenses.filter(expense => {
+      const expenseDateParts = expense.date.split('-').map(Number);
+      const expenseYear = expenseDateParts[0];
+      const expenseMonth = expenseDateParts[1] - 1; // JS Date month is 0-indexed
+      return expenseYear === reportMonth.getFullYear() && expenseMonth === reportMonth.getMonth();
+    });
+  }, [expenses, reportMonth]);
+
   return (
     <main className="flex flex-col items-center min-h-screen p-4 sm:p-8 space-y-8 bg-background">
       <header className="text-center space-y-2">
@@ -82,6 +103,24 @@ export default function Home() {
         dailyTotal={dailyTotal}
         displayDate={displayedDate} 
       />
+
+      <Separator className="max-w-2xl" />
+
+      <section className="w-full max-w-2xl space-y-4">
+        <h2 className="text-3xl font-bold font-headline text-center text-primary">Monthly Report</h2>
+        <div className="flex items-center justify-center space-x-4 my-4">
+          <Button onClick={handlePreviousMonth} variant="outline" size="icon" aria-label="Previous month">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <span className="text-xl font-medium text-center w-48 tabular-nums">
+            {format(reportMonth, 'MMMM yyyy')}
+          </span>
+          <Button onClick={handleNextMonth} variant="outline" size="icon" aria-label="Next month">
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+        <MonthlyExpenseReport expenses={monthlyExpenses} reportDate={reportMonth} />
+      </section>
     </main>
   );
 }
