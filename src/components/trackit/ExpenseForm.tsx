@@ -2,7 +2,7 @@
 "use client";
 
 import type { FC } from 'react';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,12 +17,15 @@ interface ExpenseFormProps {
   expenses: Expense[];
 }
 
-const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
-  const [selectedCategoryValue, setSelectedCategoryValue] = useState<string>("");
-  const [newCategoryInputValue, setNewCategoryInputValue] = useState<string>("");
+const ADD_NEW_CATEGORY_VALUE = "___ADD_NEW_CATEGORY___";
+const ADD_NEW_SUBCATEGORY_VALUE = "___ADD_NEW_SUBCATEGORY___";
 
-  const [selectedSubCategoryValue, setSelectedSubCategoryValue] = useState<string>("");
-  const [newSubCategoryInputValue, setNewSubCategoryInputValue] = useState<string>("");
+const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [newCategoryName, setNewCategoryName] = useState<string>("");
+
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>("");
+  const [newSubCategoryName, setNewSubCategoryName] = useState<string>("");
   
   const [cost, setCost] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -33,52 +36,39 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
   }, [expenses]);
 
   const subCategorySuggestions = useMemo(() => {
-    // Suggestions are only based on a category selected from the dropdown,
-    // not if a new category is being typed.
-    if (!selectedCategoryValue || newCategoryInputValue.trim() !== "") return [];
+    if (!selectedCategory || selectedCategory === ADD_NEW_CATEGORY_VALUE) {
+      return [];
+    }
     return Array.from(new Set(
       expenses
-        .filter(exp => exp.category === selectedCategoryValue)
+        .filter(exp => exp.category === selectedCategory)
         .map(exp => exp.subCategory)
         .filter(sub => sub && sub.trim() !== "")
     )).sort();
-  }, [expenses, selectedCategoryValue, newCategoryInputValue]);
+  }, [expenses, selectedCategory]);
 
-  const handleCategorySelectChange = (value: string) => {
-    setSelectedCategoryValue(value);
-    setNewCategoryInputValue(""); // Clear manual input if dropdown is used
-    // Reset sub-category when category changes
-    setSelectedSubCategoryValue("");
-    setNewSubCategoryInputValue("");
-  };
+  // Reset sub-category fields when category changes
+  useEffect(() => {
+    setSelectedSubCategory("");
+    setNewSubCategoryName("");
+  }, [selectedCategory]);
 
-  const handleNewCategoryInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewCategoryInputValue(e.target.value);
-    setSelectedCategoryValue(""); // Clear dropdown if manual input is used
-    // Reset sub-category when category changes
-    setSelectedSubCategoryValue("");
-    setNewSubCategoryInputValue("");
-  };
-
-  const handleSubCategorySelectChange = (value: string) => {
-    setSelectedSubCategoryValue(value);
-    setNewSubCategoryInputValue(""); // Clear manual input if dropdown is used
-  };
-
-  const handleNewSubCategoryInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewSubCategoryInputValue(e.target.value);
-    setSelectedSubCategoryValue(""); // Clear dropdown if manual input is used
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    const categoryToSubmit = newCategoryInputValue.trim() || selectedCategoryValue;
-    const subCategoryToSubmit = newSubCategoryInputValue.trim() || selectedSubCategoryValue;
+    let categoryToSubmit = selectedCategory === ADD_NEW_CATEGORY_VALUE ? newCategoryName.trim() : selectedCategory;
+    let subCategoryToSubmit = "";
+
+    if (selectedCategory === ADD_NEW_CATEGORY_VALUE) {
+      subCategoryToSubmit = newSubCategoryName.trim(); // If main category is new, sub-category is taken from its input
+    } else {
+      subCategoryToSubmit = selectedSubCategory === ADD_NEW_SUBCATEGORY_VALUE ? newSubCategoryName.trim() : selectedSubCategory;
+    }
 
     if (!categoryToSubmit) {
-      setError("Category is required (either select an existing one or enter a new one).");
+      setError("Category is required.");
       return;
     }
     if (!cost.trim()) {
@@ -93,10 +83,10 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
 
     onAddExpense({ category: categoryToSubmit, subCategory: subCategoryToSubmit, cost: costValue });
     
-    setSelectedCategoryValue("");
-    setNewCategoryInputValue("");
-    setSelectedSubCategoryValue("");
-    setNewSubCategoryInputValue("");
+    setSelectedCategory("");
+    setNewCategoryName("");
+    setSelectedSubCategory("");
+    setNewSubCategoryName("");
     setCost("");
 
     toast({
@@ -105,9 +95,10 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
     });
   };
   
-  const isNewCategoryTyped = newCategoryInputValue.trim() !== "";
-  const isCategorySelected = selectedCategoryValue !== "";
-  const isCategoryChosen = isNewCategoryTyped || isCategorySelected;
+  const showNewCategoryInput = selectedCategory === ADD_NEW_CATEGORY_VALUE;
+  const showSubCategorySection = selectedCategory && selectedCategory !== "";
+  const showNewSubCategoryInput = selectedCategory === ADD_NEW_CATEGORY_VALUE || selectedSubCategory === ADD_NEW_SUBCATEGORY_VALUE;
+  const showSubCategorySelect = showSubCategorySection && selectedCategory !== ADD_NEW_CATEGORY_VALUE;
 
   return (
     <Card className="w-full max-w-lg shadow-xl">
@@ -119,64 +110,72 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
           <div className="space-y-2">
             <Label htmlFor="category-select" className="text-base">Category</Label>
             <Select 
-              value={selectedCategoryValue} 
-              onValueChange={handleCategorySelectChange}
-              disabled={isNewCategoryTyped}
+              value={selectedCategory} 
+              onValueChange={(value) => {
+                setSelectedCategory(value);
+                if (value !== ADD_NEW_CATEGORY_VALUE) {
+                  setNewCategoryName(""); // Clear new name if existing is selected
+                }
+              }}
             >
               <SelectTrigger id="category-select" className="text-base">
-                <SelectValue placeholder="Select an existing category" />
+                <SelectValue placeholder="Select or add a category" />
               </SelectTrigger>
               <SelectContent>
                 {uniqueCategories.map(cat => (
                   <SelectItem key={cat} value={cat} className="text-base">{cat}</SelectItem>
                 ))}
+                <SelectItem value={ADD_NEW_CATEGORY_VALUE} className="text-base text-primary">Add new category...</SelectItem>
               </SelectContent>
             </Select>
-            <div className="flex items-center space-x-2 my-1">
-              <div className="flex-grow border-t border-muted"></div>
-              <span className="text-xs text-muted-foreground">OR</span>
-              <div className="flex-grow border-t border-muted"></div>
-            </div>
-            <Input
-              id="new-category-input"
-              value={newCategoryInputValue}
-              onChange={handleNewCategoryInputChange}
-              placeholder="Enter new category name"
-              className="text-base"
-              disabled={isCategorySelected && !isNewCategoryTyped}
-            />
+            {showNewCategoryInput && (
+              <Input
+                id="new-category-input"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Enter new category name"
+                className="text-base mt-2"
+                aria-label="New category name"
+              />
+            )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="subcategory-select" className="text-base">Sub-Category (Optional)</Label>
-            <Select
-              value={selectedSubCategoryValue}
-              onValueChange={handleSubCategorySelectChange}
-              disabled={!isCategoryChosen || isNewCategoryTyped || newSubCategoryInputValue.trim() !== ""}
-            >
-              <SelectTrigger id="subcategory-select" className="text-base">
-                <SelectValue placeholder={isNewCategoryTyped ? "Enter new sub-category below" : "Select existing sub-category"} />
-              </SelectTrigger>
-              <SelectContent>
-                {subCategorySuggestions.map(sub => (
-                  <SelectItem key={sub} value={sub} className="text-base">{sub}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center space-x-2 my-1">
-              <div className="flex-grow border-t border-muted"></div>
-              <span className="text-xs text-muted-foreground">OR</span>
-              <div className="flex-grow border-t border-muted"></div>
+          {showSubCategorySection && (
+            <div className="space-y-2">
+              <Label htmlFor={showSubCategorySelect ? "subcategory-select" : "new-subcategory-input"} className="text-base">Sub-Category (Optional)</Label>
+              {showSubCategorySelect && (
+                <Select
+                  value={selectedSubCategory}
+                  onValueChange={(value) => {
+                    setSelectedSubCategory(value);
+                    if (value !== ADD_NEW_SUBCATEGORY_VALUE) {
+                      setNewSubCategoryName(""); // Clear new name if existing is selected
+                    }
+                  }}
+                >
+                  <SelectTrigger id="subcategory-select" className="text-base">
+                    <SelectValue placeholder="Select or add a sub-category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subCategorySuggestions.map(sub => (
+                      <SelectItem key={sub} value={sub} className="text-base">{sub}</SelectItem>
+                    ))}
+                     <SelectItem value={ADD_NEW_SUBCATEGORY_VALUE} className="text-base text-primary">Add new sub-category...</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              {showNewSubCategoryInput && (
+                 <Input
+                    id="new-subcategory-input"
+                    value={newSubCategoryName}
+                    onChange={(e) => setNewSubCategoryName(e.target.value)}
+                    placeholder={selectedCategory === ADD_NEW_CATEGORY_VALUE ? "Enter new sub-category (optional)" : "Enter new sub-category name"}
+                    className="text-base mt-2"
+                    aria-label="New sub-category name"
+                  />
+              )}
             </div>
-            <Input
-              id="new-subcategory-input"
-              value={newSubCategoryInputValue}
-              onChange={handleNewSubCategoryInputChange}
-              placeholder="Enter new sub-category name"
-              className="text-base"
-              disabled={!isCategoryChosen || (selectedSubCategoryValue !== "" && newSubCategoryInputValue.trim() === "")}
-            />
-          </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="cost" className="text-base">Cost</Label>
