@@ -47,7 +47,6 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
     )).sort();
   }, [expenses, selectedCategory]);
 
-  // Reset sub-category fields when category changes
   useEffect(() => {
     setSelectedSubCategory("");
     setNewSubCategoryName("");
@@ -62,7 +61,7 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
     let subCategoryToSubmit = "";
 
     if (selectedCategory === ADD_NEW_CATEGORY_VALUE) {
-      subCategoryToSubmit = newSubCategoryName.trim(); // If main category is new, sub-category is taken from its input
+      subCategoryToSubmit = newSubCategoryName.trim(); 
     } else {
       subCategoryToSubmit = selectedSubCategory === ADD_NEW_SUBCATEGORY_VALUE ? newSubCategoryName.trim() : selectedSubCategory;
     }
@@ -71,6 +70,13 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
       setError("Category is required.");
       return;
     }
+    // Sub-category is now implicitly required if we remove optional tag, but can be empty string if not provided
+    // For this app, let's assume an empty string is fine if not explicitly filled.
+    // If it needs to be strictly non-empty, add validation:
+    // if (!subCategoryToSubmit && selectedCategory !== ADD_NEW_CATEGORY_VALUE && subCategorySuggestions.length > 0) {
+    //   setError("Sub-Category is required when available or adding new.");
+    //   return;
+    // }
     if (!cost.trim()) {
       setError("Cost is required.");
       return;
@@ -96,9 +102,19 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
   };
   
   const showNewCategoryInput = selectedCategory === ADD_NEW_CATEGORY_VALUE;
-  const showSubCategorySection = selectedCategory && selectedCategory !== "";
-  const showNewSubCategoryInput = selectedCategory === ADD_NEW_CATEGORY_VALUE || selectedSubCategory === ADD_NEW_SUBCATEGORY_VALUE;
+  const showSubCategorySection = selectedCategory && selectedCategory !== ""; // Show if a category is selected or "add new" is chosen for category
+  
+  // Show sub-category select only if an *existing* category is selected
   const showSubCategorySelect = showSubCategorySection && selectedCategory !== ADD_NEW_CATEGORY_VALUE;
+  
+  // Show new sub-category input if:
+  // 1. A new main category is being added (selectedCategory === ADD_NEW_CATEGORY_VALUE)
+  // OR
+  // 2. An existing main category is selected AND "Add new sub-category..." is chosen for sub-category
+  const showNewSubCategoryInput = 
+    (selectedCategory === ADD_NEW_CATEGORY_VALUE) || 
+    (selectedCategory !== ADD_NEW_CATEGORY_VALUE && selectedSubCategory === ADD_NEW_SUBCATEGORY_VALUE);
+
 
   return (
     <Card className="w-full max-w-lg shadow-xl">
@@ -114,8 +130,11 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
               onValueChange={(value) => {
                 setSelectedCategory(value);
                 if (value !== ADD_NEW_CATEGORY_VALUE) {
-                  setNewCategoryName(""); // Clear new name if existing is selected
+                  setNewCategoryName(""); 
                 }
+                 // Reset sub-category when main category changes
+                setSelectedSubCategory("");
+                setNewSubCategoryName("");
               }}
             >
               <SelectTrigger id="category-select" className="text-base">
@@ -142,14 +161,14 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
 
           {showSubCategorySection && (
             <div className="space-y-2">
-              <Label htmlFor={showSubCategorySelect ? "subcategory-select" : "new-subcategory-input"} className="text-base">Sub-Category (Optional)</Label>
+              <Label htmlFor={showSubCategorySelect ? "subcategory-select" : "new-subcategory-input"} className="text-base">Sub-Category</Label>
               {showSubCategorySelect && (
                 <Select
                   value={selectedSubCategory}
                   onValueChange={(value) => {
                     setSelectedSubCategory(value);
                     if (value !== ADD_NEW_SUBCATEGORY_VALUE) {
-                      setNewSubCategoryName(""); // Clear new name if existing is selected
+                      setNewSubCategoryName(""); 
                     }
                   }}
                 >
@@ -169,7 +188,7 @@ const ExpenseForm: FC<ExpenseFormProps> = ({ onAddExpense, expenses }) => {
                     id="new-subcategory-input"
                     value={newSubCategoryName}
                     onChange={(e) => setNewSubCategoryName(e.target.value)}
-                    placeholder={selectedCategory === ADD_NEW_CATEGORY_VALUE ? "Enter new sub-category (optional)" : "Enter new sub-category name"}
+                    placeholder={selectedCategory === ADD_NEW_CATEGORY_VALUE ? "Enter sub-category name" : "Enter new sub-category name"}
                     className="text-base mt-2"
                     aria-label="New sub-category name"
                   />
