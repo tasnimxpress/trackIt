@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 import _withPWA from 'next-pwa';
 
@@ -8,8 +9,14 @@ const withPWA = _withPWA({
   skipWaiting: true,
 });
 
+// Replace 'YOUR_REPOSITORY_NAME' with the actual name of your GitHub repository
+// if you are deploying to username.github.io/YOUR_REPOSITORY_NAME
+// If deploying to username.github.io or a custom domain, these can be empty strings or removed.
+const repoName = 'YOUR_REPOSITORY_NAME'; // CHANGE THIS
+const isProd = process.env.NODE_ENV === 'production';
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: 'export', // Enable static export
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -25,7 +32,14 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+    unoptimized: true, // Recommended for static exports
   },
+  // basePath and assetPrefix are needed if deploying to a subpath on GitHub Pages
+  // e.g., your-username.github.io/your-repository-name
+  // If deploying to the root (e.g., your-username.github.io or a custom domain),
+  // you can remove basePath and assetPrefix or set them to an empty string.
+  basePath: isProd && repoName !== 'YOUR_REPOSITORY_NAME' ? `/${repoName}` : '',
+  assetPrefix: isProd && repoName !== 'YOUR_REPOSITORY_NAME' ? `/${repoName}/` : '',
 };
 
 export default withPWA(nextConfig);

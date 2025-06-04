@@ -1,0 +1,56 @@
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main # Or your default branch
+  workflow_dispatch: # Allows manual triggering
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20" # Use a current LTS version
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js app
+        run: npm run build
+        env:
+          # This is important if you set basePath/assetPrefix based on repo name
+          # The value here MUST match the 'repoName' in your next.config.ts
+          # Or, if you hardcoded the basePath in next.config.ts, this specific env var might not be strictly needed for the build itself
+          # but it's good practice if your config relies on it.
+          # For the provided next.config.ts, repoName is used directly, so this env isn't strictly for build time there
+          # but if you were to use process.env.GITHUB_REPOSITORY_NAME for basePath, you'd adjust next.config.ts
+          NEXT_PUBLIC_BASE_PATH: '' # Adjust if your next.config.js expects a runtime env var for basePath
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
