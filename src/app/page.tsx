@@ -9,6 +9,7 @@ import ExpenseDisplayCard from '@/components/trackit/ExpenseDisplayCard';
 import MonthlyExpenseReport from '@/components/trackit/MonthlyExpenseReport';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Home() {
@@ -21,7 +22,7 @@ export default function Home() {
     const now = new Date();
     setDisplayedDate(now);
     setTodayDateString(format(now, 'yyyy-MM-dd'));
-    setReportMonth(now); // Initialize reportMonth to current month
+    setReportMonth(now); 
     
     const storedExpenses = localStorage.getItem('trackit-expenses');
     if (storedExpenses) {
@@ -96,31 +97,37 @@ export default function Home() {
 
       <ExpenseForm onAddExpense={handleAddExpense} expenses={expenses} />
       
-      <Separator className="max-w-lg" />
-
-      <ExpenseDisplayCard 
-        expenses={todaysExpenses} 
-        dailyTotal={dailyTotal}
-        displayDate={displayedDate} 
-      />
-
       <Separator className="max-w-2xl" />
 
-      <section className="w-full max-w-2xl space-y-4">
-        <h2 className="text-3xl font-bold font-headline text-center text-primary">Monthly Report</h2>
-        <div className="flex items-center justify-center space-x-4 my-4">
-          <Button onClick={handlePreviousMonth} variant="outline" size="icon" aria-label="Previous month">
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <span className="text-xl font-medium text-center w-48 tabular-nums">
-            {format(reportMonth, 'MMMM yyyy')}
-          </span>
-          <Button onClick={handleNextMonth} variant="outline" size="icon" aria-label="Next month">
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-        </div>
-        <MonthlyExpenseReport expenses={monthlyExpenses} reportDate={reportMonth} />
-      </section>
+      <Tabs defaultValue="daily" className="w-full max-w-2xl">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="daily" className="text-base py-2.5">Daily View</TabsTrigger>
+          <TabsTrigger value="monthly" className="text-base py-2.5">Monthly Report</TabsTrigger>
+        </TabsList>
+        <TabsContent value="daily">
+          <ExpenseDisplayCard 
+            expenses={todaysExpenses} 
+            dailyTotal={dailyTotal}
+            displayDate={displayedDate} 
+          />
+        </TabsContent>
+        <TabsContent value="monthly">
+          <div className="w-full space-y-4">
+            <div className="flex items-center justify-center space-x-4 my-4">
+              <Button onClick={handlePreviousMonth} variant="outline" size="icon" aria-label="Previous month">
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <span className="text-xl font-medium text-center w-48 tabular-nums">
+                {format(reportMonth, 'MMMM yyyy')}
+              </span>
+              <Button onClick={handleNextMonth} variant="outline" size="icon" aria-label="Next month">
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+            <MonthlyExpenseReport expenses={monthlyExpenses} reportDate={reportMonth} />
+          </div>
+        </TabsContent>
+      </Tabs>
     </main>
   );
 }
