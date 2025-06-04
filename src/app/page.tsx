@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -22,28 +23,26 @@ export default function Home() {
     if (storedExpenses) {
       try {
         const parsedExpenses: Expense[] = JSON.parse(storedExpenses);
-        // Ensure data integrity, perhaps filter by date or validate structure
         setExpenses(parsedExpenses);
       } catch (error) {
         console.error("Failed to parse expenses from localStorage", error);
-        localStorage.removeItem('trackit-expenses'); // Clear corrupted data
+        localStorage.removeItem('trackit-expenses'); 
       }
     }
   }, []);
 
   useEffect(() => {
-    // Save expenses to localStorage whenever they change
-    if (expenses.length > 0 || localStorage.getItem('trackit-expenses')) { // Only save if there are expenses or if it was previously populated
+    if (expenses.length > 0 || localStorage.getItem('trackit-expenses')) {
         localStorage.setItem('trackit-expenses', JSON.stringify(expenses));
     }
   }, [expenses]);
 
 
   const handleAddExpense = (data: { category: string; subCategory: string; cost: number }) => {
-    if (!todayDateString) return; // Should not happen if displayedDate is set
+    if (!todayDateString) return; 
 
     const newExpense: Expense = {
-      id: Date.now().toString(), // Simple unique ID
+      id: Date.now().toString(), 
       ...data,
       date: todayDateString,
     };
@@ -74,7 +73,7 @@ export default function Home() {
       
       <Separator className="max-w-lg" />
 
-      <ExpenseForm onAddExpense={handleAddExpense} />
+      <ExpenseForm onAddExpense={handleAddExpense} expenses={expenses} />
       
       <Separator className="max-w-lg" />
 
